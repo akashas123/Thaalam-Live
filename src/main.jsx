@@ -15,7 +15,7 @@ const fallbackTracks = [
 
 const fallbackCover = 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=85';
 
-const BrandMark = () => <span className="brand-mark" aria-hidden="true"><span className="brand-bars">{[42, 68, 100, 68, 42].map((height, index) => <i key={index} style={{ '--bar-height': `${height}%` }} />)}</span></span>;
+const BrandMark = () => <span className="brand-mark" aria-hidden="true"><span className="brand-bars">{[34, 63, 100, 63, 34].map((height, index) => <i key={index} style={{ '--bar-height': `${height}%` }} />)}</span></span>;
 
 const formatScheduleTime = (value, endValue) => {
   const format = (input) => {

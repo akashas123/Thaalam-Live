@@ -138,6 +138,10 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
 
 .player-art img { position:absolute; inset:0; display:block; }
 
+@media (min-width:801px) {
+  .hero-sticker { right:22%; top:12%; }
+}
+
 /* The disc label pulses like a compact live equalizer. */
 .disc-logo-bars i {
   transform-origin: center;

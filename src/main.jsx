@@ -190,7 +190,7 @@ function App() {
       }));
       // Load live metadata independently so it is not held up by the chart request.
       try {
-        const response = await fetch('/api/radio/nowplaying/6', { cache: 'no-store' });
+        const response = await fetch(`${apiBase}/nowplaying/6`, { cache: 'no-store' });
         const payload = await response.json(); const station = Array.isArray(payload) ? payload[0] : payload;
         const song = station?.now_playing?.song || station?.playing_next?.song;
         const artwork = song?.art || song?.album_art || song?.artwork || station?.now_playing?.song?.art || fallbackCover;
@@ -236,7 +236,7 @@ function App() {
     let cancelled = false;
     const loadLiveTrack = async () => {
       try {
-        const response = await fetch('/api/radio/nowplaying/6', { cache: 'no-store' });
+        const response = await fetch(`${apiBase}/nowplaying/6`, { cache: 'no-store' });
         const payload = await response.json();
         const station = Array.isArray(payload) ? payload[0] : payload;
         const song = station?.now_playing?.song;

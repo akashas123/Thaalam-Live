@@ -138,8 +138,11 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
 
 .player-art img { position:absolute; inset:0; display:block; }
 
-@media (min-width:801px) {
-  .hero-sticker { right:22%; top:12%; }
+@media (min-width:801px) and (max-width:1440px) {
+  .hero-sticker { left:auto; right:10%; top:24%; }
+}
+@media (min-width:1441px) {
+  .hero-sticker { left:calc(50% + 140px); right:auto; top:calc(50% - 200px); }
 }
 
 /* The disc label pulses like a compact live equalizer. */

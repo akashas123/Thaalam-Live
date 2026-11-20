@@ -44,7 +44,9 @@ function App() {
   const streamReadyRef = useRef(false);
   const pendingPlayRef = useRef(false);
   const radioStartedRef = useRef(false);
+  const hlsRef = useRef(null);
   const [playing, setPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
   const [volume, setVolume] = useState(.72);
   const [currentTrack, setCurrentTrack] = useState(fallbackTracks[0]);
   const [chartTracks, setChartTracks] = useState(fallbackTracks);
@@ -78,14 +80,29 @@ function App() {
         maxBufferLength: 6,
         backBufferLength: 0,
       });
-      hls.loadSource(streamUrl);
+      hlsRef.current = hls;
       hls.attachMedia(audio);
+      hls.loadSource(streamUrl);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         streamReadyRef.current = true;
-        if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setPlaying(true); }).catch(() => setPlaying(false));
+        if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setAudioLoading(false); setPlaying(true); }).catch(() => { setAudioLoading(false); setPlaying(false); });
+      });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!data?.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hls.startLoad(-1);
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+        } else {
+          hls.destroy();
+          hlsRef.current = null;
+          pendingPlayRef.current = false;
+          setAudioLoading(false);
+          setPlaying(false);
+        }
       });
     }
-    return () => hls?.destroy();
+    return () => { hls?.destroy(); hlsRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -263,16 +280,37 @@ function App() {
 
   const toggleAudio = async () => {
     const audio = audioRef.current; if (!audio) return;
-    if (playing) { audio.muted = true; setPlaying(false); return; }
+
+    // Keep the live connection warm while muted. This avoids losing the live
+    // HLS buffer when the user toggles the control repeatedly.
+    if (!audio.muted && !audio.paused) {
+      audio.muted = true;
+      setPlaying(false);
+      return;
+    }
+
     pendingPlayRef.current = true;
+    setAudioLoading(true);
     audio.muted = false;
-    if (radioStartedRef.current && !audio.paused) { setPlaying(true); return; }
+
+    if (audio.paused && hlsRef.current) {
+      hlsRef.current.stopLoad();
+      hlsRef.current.startLoad(-1);
+    }
+
     try {
       await audio.play();
       pendingPlayRef.current = false;
       radioStartedRef.current = true;
+      setAudioLoading(false);
       setPlaying(true);
-    } catch { setPlaying(false); }
+    } catch {
+      // A live HLS element can reject play while it is waiting for a fresh
+      // manifest segment. Leave the intent pending; the manifest callback will
+      // retry from the live edge without requiring another click.
+      setAudioLoading(false);
+      setPlaying(false);
+    }
   };
 
   const togglePreview = (track) => {
@@ -299,9 +337,9 @@ function App() {
     <audio ref={audioRef} preload="auto" playsInline onPlaying={() => setPlaying(true)} onPause={() => { if (!pendingPlayRef.current) setPlaying(false); }} onError={() => { pendingPlayRef.current = false; setPlaying(false); }} />
     <audio ref={previewAudioRef} preload="none" />
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="site-header"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><nav><a href="#listen" onClick={(event) => navigateToSection(event, '#listen')}>Listen</a><a href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>Charts</a><a href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>Shows</a><a href="#news" onClick={(event) => navigateToSection(event, '#news')}>News</a></nav><button className="header-play" onClick={toggleAudio}>{playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />} {playing ? 'Pause live' : 'Play live'}</button></header>
+    <header className="site-header"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><nav><a href="#listen" onClick={(event) => navigateToSection(event, '#listen')}>Listen</a><a href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>Charts</a><a href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>Shows</a><a href="#news" onClick={(event) => navigateToSection(event, '#news')}>News</a></nav><button className="header-play" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />} {playing ? 'Pause live' : 'Play live'}</button></header>
     <main id="main">
-      <section className="hero" id="top"><div className="hero-copy"><p className="eyebrow"><span className="live-dot" /> Live Worldwide</p><h1>We play the<br /><em>best of best.</em></h1><p className="hero-intro">A live station for new sounds, late-night discoveries, and the songs that stay after the room goes quiet.</p><div className="hero-actions"><button className="button button-primary" onClick={toggleAudio}>{playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />} {playing ? 'Pause radio' : 'Listen live'}</button><a className="text-link" href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>See the charts <ArrowUpRight size={16} /></a></div></div><div className="hero-art"><div className="record-shell"><div className="record"><div className="record-label"><DiscLogo /></div></div></div><div className="hero-sticker">ON AIR<br /><span>24 / 7</span></div></div><div className="hero-foot"><span></span><span>Scroll to live room</span><span className="hero-line" /></div></section>
+      <section className="hero" id="top"><div className="hero-copy"><p className="eyebrow"><span className="live-dot" /> Live Worldwide</p><h1>Radio for  the<br /><em>chart htis.</em></h1><p className="hero-intro">A live station for new sounds, late-night discoveries, and the songs that stay after the room goes quiet.</p><div className="hero-actions"><button className="button button-primary" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />} {playing ? 'Pause radio' : 'Listen live'}</button><a className="text-link" href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>See the charts <ArrowUpRight size={16} /></a></div></div><div className="hero-art"><div className="record-shell"><div className="record"><div className="record-label"><DiscLogo /></div></div></div><div className="hero-sticker">ON AIR<br /><span>24 / 7</span></div></div><div className="hero-foot"><span></span><span>Scroll to live room</span><span className="hero-line" /></div></section>
       <section className="player-section" id="listen"><div className="section-intro"><p className="eyebrow">The live room</p><h2>Now playing.</h2></div><div className="player-card" data-reveal="rise"><div className="player-art"><img draggable="false" src={currentTrack.cover || fallbackCover} alt="Current album artwork" onError={(e) => { e.currentTarget.src = fallbackCover; }} /><div className="art-disc"><Disc3 size={36} /></div></div><div className="player-info"><span className="live-label"><span className="live-dot" /> On air now</span><h3>{currentTrack.title}</h3><p>{currentTrack.artist}</p><div className="waveform">{Array.from({ length: 34 }, (_, i) => <span key={i} style={{ '--i': i }} />)}</div><div className="player-controls"><button className="play-button" onClick={toggleAudio}>{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button><div className="track-time"><span>Live</span><span>Thaalam 24x7</span></div><Volume2 size={18} /><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /></div></div></div></section>
       <section className="chart-section" id="charts"><div className="chart-header"><div><p className="eyebrow">Global pop · trending now</p><h2>The chart, <span>right now.</span></h2></div></div><div className="chart-grid">{chartTracks.map((track, index) => <article className={`chart-card${chartsRevealed ? ' is-visible' : ''}${previewTrack?.title === track.title ? ' is-previewing' : ''}`} data-reveal="rise" style={{ '--delay': `${index * 90}ms` }} key={`${track.rank}-${track.title}`}><div className="chart-rank">{track.rank}</div><button className="chart-cover" onClick={() => togglePreview(track)} aria-label={`${previewTrack?.title === track.title ? 'Pause' : 'Play'} ${track.title}`}><img draggable="false" src={track.cover || fallbackCover} alt={`${track.title} album art`} onError={(e) => { e.currentTarget.src = fallbackCover; }} /><span className="chart-play">{previewTrack?.title === track.title ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</span></button><div className="chart-meta"><h3>{track.title}</h3><p>{track.artist}</p></div></article>)}</div></section>
       <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>Stay for<br /><em>the side B.</em></h2><p>Three shows, one long thread through the week. New music in the morning, deep cuts after dark.</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'PREV' ? SkipBack : show.state === 'NEXT' ? SkipForward : Radio; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['PREV', 'NOW', 'NEXT'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>

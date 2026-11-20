@@ -199,6 +199,8 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
 /* Schedule rows use the same scroll-in motion as the chart cards. */
 .show-row[data-reveal] { opacity:0; transform:translate3d(0,90px,0) rotate(2deg) scale(.95); }
 .show-row[data-reveal].is-visible { opacity:1; transform:none; animation:chartDrop .95s cubic-bezier(.16,1,.3,1) both; animation-delay:var(--delay,0ms); }
+.audio-spinner { width:15px; height:15px; display:inline-block; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:audio-spin .7s linear infinite; flex:0 0 auto; }
+@keyframes audio-spin { to { transform:rotate(360deg); } }
 
 /* Charts are available immediately on first paint. */
 .chart-card[data-reveal],

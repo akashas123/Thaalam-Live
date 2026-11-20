@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import Hls from 'hls.js';
-import { ArrowUpRight, Disc3, Headphones, Pause, Play, Radio, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { ArrowUpRight, Disc3, FastForward, Pause, Play, Radio, SkipForward, Volume2 } from 'lucide-react';
 import './styles.css';
 
 const streamUrl = 'https://radio.thaalam24x7.in/hls/thaalam_24x7/aac_hifi.m3u8';
@@ -30,19 +30,48 @@ const formatScheduleTime = (value, endValue) => {
   return end ? `${start} — ${end}` : start || 'On air';
 };
 
-const isScheduleNow = (item) => item?.is_now === true || item?.is_now === 1 || item?.is_now === '1' || item?.is_now === 'true' || item?.now === true || item?.now === 1 || item?.now === '1' || item?.now === 'true';
+const isFlagged = (item, flag) => item?.[flag] === true || item?.[flag] === 1 || item?.[flag] === '1' || item?.[flag] === 'true';
+const scheduleName = (item) => item?.name || item?.title || item?.program?.name || item?.program?.title || 'Programme unavailable';
+const scheduleStart = (item) => item?.start || item?.start_time || item?.startTime;
+const scheduleEnd = (item) => item?.end || item?.end_time || item?.endTime;
 
-const pickScheduleWindow = (items) => {
+const parseScheduleDate = (value, now = Date.now()) => {
+  if (!value) return NaN;
+  const parsed = new Date(value).getTime();
+  if (Number.isFinite(parsed)) return parsed;
+  const match = String(value).trim().match(/^(\d{1,2}):?(\d{2})(?:\s*([ap]m))?$/i);
+  if (!match) return NaN;
+  let hour = Number(match[1]);
+  const minute = Number(match[2]);
+  const meridiem = match[3]?.toLowerCase();
+  if (meridiem === 'pm' && hour < 12) hour += 12;
+  if (meridiem === 'am' && hour === 12) hour = 0;
+  const date = new Date(now);
+  date.setHours(hour, minute, 0, 0);
+  return date.getTime();
+};
+
+const scheduleKey = (item) => `${scheduleName(item)}|${scheduleStart(item) || ''}|${scheduleEnd(item) || ''}`;
+
+const selectSchedulePrograms = (items) => {
   const now = Date.now();
-  const parsed = items.map((item) => ({ ...item, _start: new Date(item.start || item.start_time || item.startTime).getTime(), _end: new Date(item.end || item.end_time || item.endTime).getTime() })).filter((item) => Number.isFinite(item._start));
-  const flaggedIndex = parsed.findIndex(isScheduleNow);
-  const currentIndex = flaggedIndex >= 0 ? flaggedIndex : parsed.findIndex((item) => item._start <= now && (!Number.isFinite(item._end) || item._end >= now));
-  const index = currentIndex >= 0 ? currentIndex : parsed.findIndex((item) => item._start > now);
-  if (index < 0) return items.slice(0, 3);
-  const current = parsed[index];
-  const previous = parsed[index - 1] || parsed[index + 1] || parsed[parsed.length - 1];
-  const next = parsed[index + 1] || parsed[0];
-  return [previous, parsed[index], next].filter(Boolean).map((item, offset) => ({ ...item, state: ['PREV', 'NOW', 'NEXT'][offset] }));
+  const parsed = items.map((item) => {
+    const start = parseScheduleDate(scheduleStart(item), now);
+    let end = parseScheduleDate(scheduleEnd(item), now);
+    if (Number.isFinite(start) && Number.isFinite(end) && end < start) end += 24 * 60 * 60 * 1000;
+    return { ...item, _start: start, _end: end, _key: scheduleKey(item) };
+  }).filter((item) => Number.isFinite(item._start));
+  const unique = [...new Map(parsed.map((item) => [item._key, item])).values()].sort((a, b) => a._start - b._start);
+  if (!unique.length) return [];
+
+  const nowProgram = unique.find((item) => isFlagged(item, 'is_now')) || unique.find((item) => item._start <= now && (!Number.isFinite(item._end) || item._end >= now)) || unique[0];
+  const nextProgram = unique.find((item) => item._key !== nowProgram._key && isFlagged(item, 'is_next')) || unique.find((item) => item._key !== nowProgram._key && item._start > nowProgram._start) || unique.find((item) => item._key !== nowProgram._key);
+  const laterProgram = nextProgram && (unique.find((item) => item._key !== nowProgram._key && item._key !== nextProgram._key && item._start > nextProgram._start) || unique.find((item) => item._key !== nowProgram._key && item._key !== nextProgram._key));
+  return [
+    nowProgram && { ...nowProgram, state: 'NOW' },
+    nextProgram && { ...nextProgram, state: 'NEXT' },
+    laterProgram && { ...laterProgram, state: 'LATER' },
+  ].filter(Boolean);
 };
 
 function App() {
@@ -60,11 +89,7 @@ function App() {
   const [popNews, setPopNews] = useState([]);
   const [chartsRevealed, setChartsRevealed] = useState(false);
   const previewAudioRef = useRef(null);
-  const [schedule, setSchedule] = useState([
-    { start: '06 — 10', state: 'PREV', name: 'First Light', description: 'Fresh releases before the city wakes up.', icon: Headphones },
-    { start: '18 — 22', state: 'NOW', name: 'After Hours', description: 'Long-form listening for the long way home.', icon: Radio, featured: true },
-    { start: '22 — 02', state: 'NEXT', name: 'Night Drive', description: 'Low lights, new voices, no rush.', icon: Disc3 },
-  ]);
+  const [schedule, setSchedule] = useState([]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -137,34 +162,28 @@ function App() {
   useEffect(() => {
     const loadSchedule = async () => {
       try {
-        const response = await fetch(`${apiBase}/station/6/schedule`, { cache: 'no-store' });
+        const response = await fetch(`${apiBase}/station/thaalam_24x7/schedule`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Schedule request failed: ${response.status}`);
         const payload = await response.json();
         const items = Array.isArray(payload) ? payload : payload?.data || payload?.schedule;
         if (!Array.isArray(items) || !items.length) return;
-        const selected = pickScheduleWindow(items).slice(0, 3);
-        while (selected.length < 3) {
-          const last = selected[selected.length - 1];
-          const lastEnd = last?.end || last?.end_time || last?.endTime;
-          const nextTemplate = items.find((entry) => (entry.name || entry.title || entry.program?.name) !== (last?.name || last?.title || last?.program?.name)) || items[0];
-          const nextStart = lastEnd && !Number.isNaN(new Date(lastEnd).getTime()) ? new Date(lastEnd).toISOString() : new Date(Date.now() + 3600000).toISOString();
-          selected.push({ ...nextTemplate, start: nextStart, name: nextTemplate.name || nextTemplate.title || nextTemplate.program?.name || 'Thaalam 24x7', state: 'NEXT' });
-        }
-        const nowIndex = selected.findIndex((item) => isScheduleNow(item) || item.state === 'NOW');
+        const selected = selectSchedulePrograms(items);
         setSchedule(selected.map((item, index) => {
-          const isNow = nowIndex >= 0 && index === nowIndex;
-          const state = nowIndex >= 0 ? (isNow ? 'NOW' : index < nowIndex ? 'PREV' : 'NEXT') : (index === 0 ? 'PREV' : 'NEXT');
+          const isNow = item.state === 'NOW';
           return {
-          start: formatScheduleTime(item.start || item.start_time || item.startTime, item.end || item.end_time || item.endTime),
-          state,
-          name: item.name || item.title || item.program?.name || 'Thaalam 24x7',
+          start: formatScheduleTime(scheduleStart(item), scheduleEnd(item)),
+          state: item.state,
+          name: scheduleName(item),
           description: item.description || item.program?.description || 'Live programming from Thaalam 24x7.',
-          icon: [Headphones, Radio, Disc3][index % 3],
+          icon: [Radio, SkipForward, SkipForward][index % 3],
           featured: isNow,
           };
         }));
       } catch {}
     };
     loadSchedule();
+    const refreshTimer = setInterval(loadSchedule, 60 * 1000);
+    return () => clearInterval(refreshTimer);
   }, []);
 
   useEffect(() => {
@@ -353,7 +372,7 @@ function App() {
       <section className="hero" id="top"><div className="hero-copy"><p className="eyebrow"><span className="live-dot" /> Live Worldwide</p><h1>We play the<br />best</h1><p className="hero-intro">Catch the greatest hits, nonstop 24x7, live worldwide</p><div className="hero-actions"><button className="button button-primary" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />} {playing ? 'Pause radio' : 'Listen live'}</button><a className="text-link" href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>See the charts <ArrowUpRight size={16} /></a></div></div><div className="hero-art"><div className="record-shell"><div className="record"><div className="record-label"><DiscLogo /></div></div></div><div className="hero-sticker">ON AIR<br /><span>24 / 7</span></div></div><div className="hero-foot"><span></span><span>Scroll to live room</span><span className="hero-line" /></div></section>
       <section className="player-section" id="listen"><div className="section-intro"><p className="eyebrow">The live room</p><h2>Now playing</h2></div><div className="player-card" data-reveal="rise"><div className="player-art"><img draggable="false" src={currentTrack.cover || fallbackCover} alt="Current album artwork" onError={(e) => { e.currentTarget.src = fallbackCover; }} /><div className="art-disc"><Disc3 size={36} /></div></div><div className="player-info"><span className="live-label"><span className="live-dot" /> On air now</span><h3>{currentTrack.title}</h3><p>{currentTrack.artist}</p><div className="waveform">{Array.from({ length: 34 }, (_, i) => <span key={i} style={{ '--i': i }} />)}</div><div className="player-controls"><button className="play-button" onClick={toggleAudio}>{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button><div className="track-time"><span>Live</span><span>Thaalam 24x7</span></div><Volume2 size={18} /><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /></div></div></div></section>
       <section className="chart-section" id="charts"><div className="chart-header"><div><p className="eyebrow">Global pop · trending now</p><h2>The chart, <span>right now</span></h2></div></div><div className="chart-grid">{chartTracks.map((track, index) => <article className={`chart-card${chartsRevealed ? ' is-visible' : ''}${previewTrack?.title === track.title ? ' is-previewing' : ''}`} data-reveal="rise" style={{ '--delay': `${index * 90}ms` }} key={`${track.rank}-${track.title}`}><div className="chart-rank">{track.rank}</div><button className="chart-cover" onClick={() => togglePreview(track)} aria-label={`${previewTrack?.title === track.title ? 'Pause' : 'Play'} ${track.title}`}><img draggable="false" src={track.cover || fallbackCover} alt={`${track.title} album art`} onError={(e) => { e.currentTarget.src = fallbackCover; }} /><span className="chart-play">{previewTrack?.title === track.title ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</span></button><div className="chart-meta"><h3>{track.title}</h3><p>{track.artist}</p></div></article>)}</div></section>
-      <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>What's<span className="heading-gap">&nbsp;</span>on<br /><span>Thaalam</span></h2><p>Shows curated by our experts</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'PREV' ? SkipBack : show.state === 'NEXT' ? SkipForward : Radio; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['PREV', 'NOW', 'NEXT'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>
+      <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>What's<span className="heading-gap">&nbsp;</span>on<br /><span>Thaalam</span></h2><p>Shows curated by our experts</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'NOW' ? Radio : show.state === 'LATER' ? FastForward : SkipForward; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured is-now' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['NOW', 'NEXT', 'LATER'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>
       <section className="trending-section" id="news"><div className="trending-copy"><p className="eyebrow">Pop music, right now</p><h2>What’s<br /><span>moving</span></h2><p>The latest stories, releases, and moments shaping pop culture beyond the playlist.</p></div><div className="news-list">{popNews.length ? popNews.map((story, index) => <a className="news-item" data-reveal="rise" href={story.link} target="_blank" rel="noreferrer" key={`${story.title}-${index}`}><span className="news-source">{story.source}</span><strong>{story.title}</strong><small className="news-date">{story.date ? new Date(story.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'Latest'}</small><ArrowUpRight size={16} /></a>) : <div className="news-empty"><Disc3 size={24} /><span>Loading pop music news…</span></div>}</div></section>
     </main>
     <footer className="site-footer"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><a className="footer-player-link" href="https://web.thaalam24x7.in">Web Player <ArrowUpRight size={14} aria-hidden="true" /></a><span>© 2026 Thaalam 24x7</span></footer>

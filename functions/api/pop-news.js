@@ -1,4 +1,4 @@
-export async function onRequest() {
+export async function onRequestGet() {
   const response = await fetch('https://news.google.com/rss/search?q=pop%20music&hl=en-US&gl=US&ceid=US:en');
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', '*');

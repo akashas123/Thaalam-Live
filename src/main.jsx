@@ -114,7 +114,7 @@ function App() {
   useEffect(() => {
     const loadSchedule = async () => {
       try {
-        const response = await fetch('/api/radio/station/6/schedule', { cache: 'no-store' });
+        const response = await fetch(`${apiBase}/station/6/schedule`, { cache: 'no-store' });
         const payload = await response.json();
         const items = Array.isArray(payload) ? payload : payload?.data || payload?.schedule;
         if (!Array.isArray(items) || !items.length) return;

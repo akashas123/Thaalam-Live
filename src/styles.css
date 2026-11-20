@@ -125,7 +125,7 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
 
 /* Keep live metadata/artwork changes from changing the player card height. */
 @media (min-width:801px) {
-  .player-card { height:530px; min-height:530px; }
+  .player-card { height:530px; min-height:530px; overflow:hidden; }
   .player-art { min-height:0; }
 }
 @media (max-width:800px) {
@@ -135,6 +135,8 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
 @media (max-width:480px) {
   .player-art { height:270px; min-height:270px; }
 }
+
+.player-art img { position:absolute; inset:0; display:block; }
 
 /* The disc label pulses like a compact live equalizer. */
 .disc-logo-bars i {

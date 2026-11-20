@@ -62,9 +62,12 @@ function App() {
     const audio = audioRef.current;
     if (!audio) return;
     audio.volume = volume;
+    audio.muted = true;
+    audio.preload = 'auto';
     let hls;
     if (audio.canPlayType('application/vnd.apple.mpegurl')) {
       audio.src = streamUrl;
+      audio.load();
       audio.addEventListener('loadedmetadata', () => { streamReadyRef.current = true; if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setPlaying(true); }).catch(() => {}); }, { once: true });
     }
     else if (Hls.isSupported()) {
@@ -78,8 +81,9 @@ function App() {
         maxBufferLength: 6,
         backBufferLength: 0,
       });
-      hls.loadSource(streamUrl);
       hls.attachMedia(audio);
+      hls.loadSource(streamUrl);
+      hls.startLoad(-1);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         streamReadyRef.current = true;
         if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setPlaying(true); }).catch(() => setPlaying(false));

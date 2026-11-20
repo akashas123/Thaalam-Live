@@ -188,6 +188,14 @@ function App() {
         }
         return track;
       }));
+      // Load live metadata independently so it is not held up by the chart request.
+      try {
+        const response = await fetch('/api/radio/nowplaying/6', { cache: 'no-store' });
+        const payload = await response.json(); const station = Array.isArray(payload) ? payload[0] : payload;
+        const song = station?.now_playing?.song || station?.playing_next?.song;
+        const artwork = song?.art || song?.album_art || song?.artwork || station?.now_playing?.song?.art || fallbackCover;
+        if (song?.title) setCurrentTrack({ ...fallbackTracks[0], title: song.title, artist: song.artist || song.artist_name || 'Thaalam 24x7', cover: artwork });
+      } catch {}
       try {
         const chartPayload = await Promise.any([
           '/api/charts',
@@ -220,13 +228,6 @@ function App() {
         setChartTracks(fallbackTracks);
         addPreviews(fallbackTracks).then(setChartTracks).catch(() => {});
       }
-      try {
-        const response = await fetch('/api/radio/nowplaying/6');
-        const payload = await response.json(); const station = Array.isArray(payload) ? payload[0] : payload;
-        const song = station?.now_playing?.song || station?.playing_next?.song;
-        const artwork = song?.art || song?.album_art || song?.artwork || station?.now_playing?.song?.art || fallbackCover;
-        if (song?.title) setCurrentTrack({ ...fallbackTracks[0], title: song.title, artist: song.artist || song.artist_name || 'Thaalam 24x7', cover: artwork });
-      } catch {}
     };
     loadData();
   }, []);
@@ -240,7 +241,7 @@ function App() {
         const station = Array.isArray(payload) ? payload[0] : payload;
         const song = station?.now_playing?.song;
         const cover = song?.art || song?.album_art || song?.artwork || station?.now_playing?.song?.art;
-        if (!cancelled && song?.title) setCurrentTrack((previous) => ({ ...previous, title: song.title, artist: song.artist || song.artist_name || 'Thaalam Radio', cover: cover || previous.cover }));
+        if (!cancelled && song?.title) setCurrentTrack((previous) => ({ ...previous, title: song.title, artist: song.artist || song.artist_name || 'Thaalam 24x7', cover: cover || previous.cover }));
       } catch {}
     };
     loadLiveTrack();

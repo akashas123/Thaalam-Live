@@ -123,6 +123,19 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
   [data-reveal], .news-item { opacity:1 !important; transform:none !important; transition:none !important; animation:none !important; }
 }
 
+/* Keep live metadata/artwork changes from changing the player card height. */
+@media (min-width:801px) {
+  .player-card { height:530px; min-height:530px; }
+  .player-art { min-height:0; }
+}
+@media (max-width:800px) {
+  .player-card { height:auto; }
+  .player-art { height:330px; min-height:330px; }
+}
+@media (max-width:480px) {
+  .player-art { height:270px; min-height:270px; }
+}
+
 /* The disc label pulses like a compact live equalizer. */
 .disc-logo-bars i {
   transform-origin: center;

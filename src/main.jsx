@@ -43,6 +43,7 @@ function App() {
   const audioRef = useRef(null);
   const streamReadyRef = useRef(false);
   const pendingPlayRef = useRef(false);
+  const radioStartedRef = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(.72);
   const [currentTrack, setCurrentTrack] = useState(fallbackTracks[0]);
@@ -83,7 +84,6 @@ function App() {
         streamReadyRef.current = true;
         if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setPlaying(true); }).catch(() => setPlaying(false));
       });
-      hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) { pendingPlayRef.current = false; setPlaying(false); } });
     }
     return () => hls?.destroy();
   }, []);
@@ -263,9 +263,16 @@ function App() {
 
   const toggleAudio = async () => {
     const audio = audioRef.current; if (!audio) return;
-    if (playing) { pendingPlayRef.current = false; audio.pause(); setPlaying(false); return; }
-    if (!streamReadyRef.current) { pendingPlayRef.current = true; setPlaying(true); return; }
-    try { await audio.play(); setPlaying(true); } catch { setPlaying(false); }
+    if (playing) { audio.muted = true; setPlaying(false); return; }
+    pendingPlayRef.current = true;
+    audio.muted = false;
+    if (radioStartedRef.current && !audio.paused) { setPlaying(true); return; }
+    try {
+      await audio.play();
+      pendingPlayRef.current = false;
+      radioStartedRef.current = true;
+      setPlaying(true);
+    } catch { setPlaying(false); }
   };
 
   const togglePreview = (track) => {

@@ -53,6 +53,20 @@ const parseScheduleDate = (value, now = Date.now()) => {
 
 const scheduleKey = (item) => `${scheduleName(item)}|${scheduleStart(item) || ''}|${scheduleEnd(item) || ''}`;
 
+const formatNewsDate = (value) => {
+  if (!value) return 'Latest';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Latest';
+  const elapsed = Math.max(0, Date.now() - date.getTime());
+  const minutes = Math.floor(elapsed / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+};
+
 const selectSchedulePrograms = (items) => {
   const now = Date.now();
   const parsed = items.map((item) => {
@@ -175,6 +189,7 @@ function App() {
         const doc = new DOMParser().parseFromString(xml, 'text/xml');
         const items = [...doc.querySelectorAll('item')].slice(0, 4).map((item) => ({
           title: item.querySelector('title')?.textContent?.replace(/\s+-\s+[^-]+$/, '') || 'Pop music update',
+          author: item.getElementsByTagName('dc:creator')[0]?.textContent?.trim() || item.querySelector('author')?.textContent?.trim() || '',
           source: item.querySelector('source')?.textContent || 'Pop music news',
           date: item.querySelector('pubDate')?.textContent || '',
           link: item.querySelector('link')?.textContent || '#',
@@ -423,7 +438,7 @@ function App() {
       <section className="player-section" id="listen"><div className="section-intro"><p className="eyebrow">The live room</p><h2>Now playing</h2></div><div className="player-card" data-reveal="rise"><div className="player-art"><img draggable="false" src={currentTrack.cover || fallbackCover} alt="Current album artwork" onError={(e) => { e.currentTarget.src = fallbackCover; }} /><div className="art-disc"><Disc3 size={36} /></div></div><div className="player-info"><span className="live-label"><span className="live-dot" /> On air now</span><h3>{currentTrack.title}</h3><p>{currentTrack.artist}</p><div className="waveform">{Array.from({ length: 34 }, (_, i) => <span key={i} style={{ '--i': i }} />)}</div><div className="player-controls"><button className="play-button" onClick={toggleAudio}>{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button><div className="track-time"><span>Live</span><span>Thaalam 24x7</span></div><Volume2 size={18} /><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /></div></div></div></section>
       <section className="chart-section" id="charts"><div className="chart-header"><div><p className="eyebrow">Global pop · trending now</p><h2>The chart, <span>right now</span></h2></div></div><div className="chart-grid">{chartTracks.map((track, index) => <article className={`chart-card${chartsRevealed ? ' is-visible' : ''}${previewTrack?.title === track.title ? ' is-previewing' : ''}`} data-reveal="rise" style={{ '--delay': `${index * 90}ms` }} key={`${track.rank}-${track.title}`}><div className="chart-rank">{track.rank}</div><button className="chart-cover" onClick={() => togglePreview(track)} aria-label={`${previewTrack?.title === track.title ? 'Pause' : 'Play'} ${track.title}`}><img draggable="false" src={track.cover || fallbackCover} alt={`${track.title} album art`} onError={(e) => { e.currentTarget.src = fallbackCover; }} /><span className="chart-play">{previewTrack?.title === track.title ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</span></button><div className="chart-meta"><h3>{track.title}</h3><p>{track.artist}</p></div></article>)}</div></section>
       <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>What's<span className="heading-gap">&nbsp;</span>on<br /><span>Thaalam</span></h2><p>Shows curated by our experts</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'NOW' ? Radio : show.state === 'LATER' ? FastForward : SkipForward; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured is-now' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['NOW', 'NEXT', 'LATER'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>
-      <section className="trending-section" id="news"><div className="trending-copy"><p className="eyebrow">Pop music, right now</p><h2>What’s<br /><span>moving</span></h2><p>The latest stories, releases, and moments shaping pop culture beyond the playlist.</p></div><div className="news-list">{popNews.length ? popNews.map((story, index) => <a className="news-item" data-reveal="rise" href={story.link} target="_blank" rel="noreferrer" key={`${story.title}-${index}`}><span className="news-source">{story.source}</span><strong>{story.title}</strong><small className="news-date">{story.date ? new Date(story.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'Latest'}</small><ArrowUpRight size={16} /></a>) : <div className="news-empty"><Disc3 size={24} /><span>Loading pop music news…</span></div>}</div></section>
+      <section className="trending-section" id="news"><div className="trending-copy"><p className="eyebrow">Pop music, right now</p><h2>What’s<br /><span>moving</span></h2><p>The latest stories, releases, and moments shaping pop culture beyond the playlist.</p></div><div className="news-list">{popNews.length ? popNews.map((story, index) => <a className="news-item" data-reveal="rise" href={story.link} target="_blank" rel="noreferrer" key={`${story.title}-${index}`}><span className="news-source">{story.author || story.source}</span><strong>{story.title}</strong><small className="news-date">{formatNewsDate(story.date)}</small><ArrowUpRight size={16} /></a>) : <div className="news-empty"><Disc3 size={24} /><span>Loading pop music news…</span></div>}</div></section>
     </main>
     <footer className="site-footer"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><a className="footer-player-link" href="https://web.thaalam24x7.in">Web Player <ArrowUpRight size={14} aria-hidden="true" /></a><span>© 2026 Thaalam 24x7</span></footer>
   </>;

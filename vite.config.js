@@ -26,9 +26,9 @@ export default defineConfig({
         rewrite: (path) => path.replace('/api/radio', '/api'),
       },
       '/api/pop-news': {
-        target: 'https://news.google.com',
+        target: 'https://www.buzz-music.com',
         changeOrigin: true,
-        rewrite: () => '/rss/search?q=pop%20music&hl=en-US&gl=US&ceid=US:en',
+        rewrite: () => '/blog-feed.xml',
       },
     },
   },

@@ -1,5 +1,6 @@
 export async function onRequestGet() {
   const sources = [
+    'https://www.buzz-music.com/blog-feed.xml',
     'https://news.google.com/rss/search?q=pop%20music&hl=en-US&gl=US&ceid=US:en',
     'https://www.bing.com/news/search?q=pop%20music&format=rss',
   ];

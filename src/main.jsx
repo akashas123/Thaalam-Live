@@ -96,27 +96,38 @@ function App() {
     if (!audio) return;
     audio.volume = volume;
     let hls;
+    const tryStartPlayback = () => {
+      if (!pendingPlayRef.current || audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      audio.play().then(() => {
+        pendingPlayRef.current = false;
+        setAudioLoading(false);
+        setPlaying(true);
+      }).catch(() => {});
+    };
+    const handleCanPlay = () => {
+      streamReadyRef.current = true;
+      tryStartPlayback();
+    };
+    audio.addEventListener('canplay', handleCanPlay);
     if (audio.canPlayType('application/vnd.apple.mpegurl')) {
       audio.src = streamUrl;
-      audio.addEventListener('loadedmetadata', () => { streamReadyRef.current = true; if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setPlaying(true); }).catch(() => {}); }, { once: true });
     }
     else if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
-        lowLatencyMode: true,
+        lowLatencyMode: false,
         startPosition: -1,
-        liveSyncDurationCount: 1,
-        liveMaxLatencyDurationCount: 3,
-        maxLiveSyncPlaybackRate: 1.5,
-        maxBufferLength: 6,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 6,
+        maxLiveSyncPlaybackRate: 1.2,
+        maxBufferLength: 12,
         backBufferLength: 0,
       });
       hlsRef.current = hls;
       hls.attachMedia(audio);
       hls.loadSource(streamUrl);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        streamReadyRef.current = true;
-        if (pendingPlayRef.current) audio.play().then(() => { pendingPlayRef.current = false; setAudioLoading(false); setPlaying(true); }).catch(() => { setAudioLoading(false); setPlaying(false); });
+        tryStartPlayback();
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data?.fatal) return;
@@ -133,7 +144,11 @@ function App() {
         }
       });
     }
-    return () => { hls?.destroy(); hlsRef.current = null; };
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlay);
+      hls?.destroy();
+      hlsRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -323,23 +338,17 @@ function App() {
     setAudioLoading(true);
     audio.muted = false;
 
-    if (audio.paused && hlsRef.current) {
-      hlsRef.current.stopLoad();
-      hlsRef.current.startLoad(-1);
-    }
-
-    try {
-      await audio.play();
-      pendingPlayRef.current = false;
-      radioStartedRef.current = true;
-      setAudioLoading(false);
-      setPlaying(true);
-    } catch {
-      // A live HLS element can reject play while it is waiting for a fresh
-      // manifest segment. Leave the intent pending; the manifest callback will
-      // retry from the live edge without requiring another click.
-      setAudioLoading(false);
-      setPlaying(false);
+    if (streamReadyRef.current) {
+      try {
+        await audio.play();
+        pendingPlayRef.current = false;
+        radioStartedRef.current = true;
+        setAudioLoading(false);
+        setPlaying(true);
+      } catch {
+        setAudioLoading(false);
+        setPlaying(false);
+      }
     }
   };
 

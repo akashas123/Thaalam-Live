@@ -223,6 +223,7 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
 .trending-section { background:var(--acid) !important; }
 .trending-section::before { color:rgba(17,17,18,.28) !important; }
 .trending-section::before { letter-spacing:-.06em !important; }
+.trending-copy .eyebrow { color:#111 !important; }
 .audio-spinner { width:15px; height:15px; display:inline-block; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:audio-spin .7s linear infinite; flex:0 0 auto; }
 @keyframes audio-spin { to { transform:rotate(360deg); } }
 

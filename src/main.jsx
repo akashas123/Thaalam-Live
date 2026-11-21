@@ -80,6 +80,7 @@ function App() {
   const pendingPlayRef = useRef(false);
   const radioStartedRef = useRef(false);
   const hlsRef = useRef(null);
+  const playRetryRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
   const [volume, setVolume] = useState(.72);
@@ -95,24 +96,29 @@ function App() {
     const audio = audioRef.current;
     if (!audio) return;
     audio.volume = volume;
+    audio.muted = true;
     let hls;
+    const retryPlayback = () => {
+      clearTimeout(playRetryRef.current);
+      playRetryRef.current = setTimeout(() => {
+        if (!pendingPlayRef.current) return;
+        hlsRef.current?.startLoad(-1);
+        audio.play().catch(() => retryPlayback());
+      }, 750);
+    };
     const tryStartPlayback = () => {
-      if (!pendingPlayRef.current || audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      if (!pendingPlayRef.current) return;
       audio.play().then(() => {
-        pendingPlayRef.current = false;
-        setAudioLoading(false);
-        setPlaying(true);
-      }).catch(() => {});
+        radioStartedRef.current = true;
+      }).catch(() => retryPlayback());
     };
     const handleCanPlay = () => {
       streamReadyRef.current = true;
       tryStartPlayback();
+      if (audio.paused) audio.play().catch(() => {});
     };
     audio.addEventListener('canplay', handleCanPlay);
-    if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-      audio.src = streamUrl;
-    }
-    else if (Hls.isSupported()) {
+    if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -124,10 +130,16 @@ function App() {
         backBufferLength: 0,
       });
       hlsRef.current = hls;
-      hls.attachMedia(audio);
       hls.loadSource(streamUrl);
+      hls.attachMedia(audio);
+      hls.startLoad(-1);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         tryStartPlayback();
+        audio.play().catch(() => {});
+      });
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        tryStartPlayback();
+        if (audio.paused) audio.play().catch(() => {});
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data?.fatal) return;
@@ -143,8 +155,12 @@ function App() {
           setPlaying(false);
         }
       });
+    } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+      audio.src = streamUrl;
+      audio.load();
     }
     return () => {
+      clearTimeout(playRetryRef.current);
       audio.removeEventListener('canplay', handleCanPlay);
       hls?.destroy();
       hlsRef.current = null;
@@ -211,8 +227,16 @@ function App() {
     }), { threshold: .12, rootMargin: '0px 0px -8% 0px' });
     document.querySelectorAll('[data-reveal]').forEach((item) => observer.observe(item));
     let previousScrollY = window.scrollY;
-    let heroFalling = window.scrollY > (window.innerWidth <= 800 ? window.innerHeight * .5 : 20);
+    // Do not trigger the hero fall from browser scroll restoration on refresh;
+    // it should only begin after an actual downward scroll event.
+    let heroFalling = false;
+    let userInitiatedScroll = false;
+    const markUserScroll = () => { userInitiatedScroll = true; };
     const onScroll = () => {
+      if (!userInitiatedScroll) {
+        previousScrollY = window.scrollY;
+        return;
+      }
       const direction = window.scrollY >= previousScrollY ? 'down' : 'up';
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
@@ -231,8 +255,17 @@ function App() {
       document.documentElement.style.setProperty('--badge-progress', `${Math.min(1, window.scrollY / 80)}`);
       document.documentElement.style.setProperty('--scroll-progress', `${window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight)}`);
     };
-    onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { observer.disconnect(); window.removeEventListener('scroll', onScroll); };
+    window.addEventListener('wheel', markUserScroll, { passive: true });
+    window.addEventListener('touchmove', markUserScroll, { passive: true });
+    window.addEventListener('keydown', markUserScroll, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('wheel', markUserScroll);
+      window.removeEventListener('touchmove', markUserScroll);
+      window.removeEventListener('keydown', markUserScroll);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, [popNews.length, chartTracks.length]);
 
   useEffect(() => {
@@ -326,10 +359,12 @@ function App() {
   const toggleAudio = async () => {
     const audio = audioRef.current; if (!audio) return;
 
-    // Keep the live connection warm while muted. This avoids losing the live
-    // HLS buffer when the user toggles the control repeatedly.
+    // Stop the live connection on pause so the next Play starts a fresh
+    // segment request from the live edge.
     if (!audio.muted && !audio.paused) {
-      audio.muted = true;
+      audio.pause();
+      hlsRef.current?.stopLoad();
+      pendingPlayRef.current = false;
       setPlaying(false);
       return;
     }
@@ -337,17 +372,23 @@ function App() {
     pendingPlayRef.current = true;
     setAudioLoading(true);
     audio.muted = false;
+    hlsRef.current?.startLoad(-1);
 
-    if (streamReadyRef.current) {
-      try {
-        await audio.play();
+    try {
+      await audio.play();
+      radioStartedRef.current = true;
+    } catch (error) {
+      if (error?.name === 'NotAllowedError') {
         pendingPlayRef.current = false;
-        radioStartedRef.current = true;
-        setAudioLoading(false);
-        setPlaying(true);
-      } catch {
         setAudioLoading(false);
         setPlaying(false);
+      } else {
+        clearTimeout(playRetryRef.current);
+        playRetryRef.current = setTimeout(() => {
+          if (!pendingPlayRef.current) return;
+          hlsRef.current?.startLoad(-1);
+          audio.play().catch(() => {});
+        }, 750);
       }
     }
   };
@@ -373,7 +414,7 @@ function App() {
   };
 
   return <>
-    <audio ref={audioRef} preload="auto" playsInline onPlaying={() => setPlaying(true)} onPause={() => { if (!pendingPlayRef.current) setPlaying(false); }} onError={() => { pendingPlayRef.current = false; setPlaying(false); }} />
+    <audio ref={audioRef} autoPlay muted preload="auto" playsInline onPlaying={() => { clearTimeout(playRetryRef.current); if (pendingPlayRef.current) audioRef.current.muted = false; pendingPlayRef.current = false; setAudioLoading(false); setPlaying(!audioRef.current.muted); }} onWaiting={() => setAudioLoading(true)} onStalled={() => setAudioLoading(true)} onPause={() => { if (!pendingPlayRef.current) { setAudioLoading(false); setPlaying(false); } }} onError={() => { clearTimeout(playRetryRef.current); pendingPlayRef.current = false; setAudioLoading(false); setPlaying(false); }} />
     <audio ref={previewAudioRef} preload="none" />
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="site-header"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><nav><a href="#listen" onClick={(event) => navigateToSection(event, '#listen')}>Listen</a><a href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>Charts</a><a href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>Shows</a><a href="#news" onClick={(event) => navigateToSection(event, '#news')}>News</a></nav><button className="header-play" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />} {playing ? 'Pause live' : 'Play live'}</button></header>

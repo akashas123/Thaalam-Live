@@ -64,8 +64,6 @@ h1,h2,h3,p { margin-top:0; } h1 { font-size:clamp(4.5rem, 8.5vw, 9.7rem); line-h
 .show-row > span:first-child { white-space:nowrap; font-size:11px; }
 .show-row > span small { display:block; margin-bottom:8px; color:var(--acid); font:9px var(--mono); letter-spacing:.14em; }
 .show-row { grid-template-columns:150px 1fr 28px; column-gap:40px; }
-.show-row.is-now { grid-template-columns:1fr; }
-.show-row.is-now[data-reveal] { opacity:1; transform:none; }
 @media (max-width: 800px) { .show-row { grid-template-columns:92px 1fr 22px; column-gap:16px; } }
 .news-list { position:relative; z-index:1; display:flex; flex-direction:column; width:min(620px, 100%); border-top:1px solid rgba(17,17,18,.28); }
 .news-item { display:grid; grid-template-columns:120px 1fr 55px 18px; gap:18px; align-items:center; padding:22px 0; color:#151515; border-bottom:1px solid rgba(17,17,18,.28); transition:padding .3s, background .3s; }

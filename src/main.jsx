@@ -256,7 +256,7 @@ function App() {
       }
       const root = document.documentElement;
       const scrollDelta = window.scrollY - previousScrollY;
-      if (Math.abs(scrollDelta) < 2) return;
+      if (scrollDelta === 0) return;
       const direction = scrollDelta > 0 ? 'down' : 'up';
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
@@ -269,7 +269,7 @@ function App() {
       }
       if (direction === 'up' && heroFallTriggered && window.scrollY < heroReturnThreshold) heroFalling = false;
       document.documentElement.classList.toggle('hero-falling', heroFalling);
-      document.documentElement.classList.toggle('hero-returning', direction === 'up' && heroFallTriggered && !heroFalling);
+      document.documentElement.classList.toggle('hero-returning', direction === 'up' && heroFallTriggered && !heroFalling && window.scrollY < heroReturnThreshold);
       if (window.scrollY <= 4 && previousScrollY > 4) {
         document.querySelectorAll('[data-reveal]').forEach((item) => item.classList.remove('is-visible'));
       }

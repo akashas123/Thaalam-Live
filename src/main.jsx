@@ -255,12 +255,14 @@ function App() {
         return;
       }
       const root = document.documentElement;
-      const direction = window.scrollY >= previousScrollY ? 'down' : 'up';
+      const scrollDelta = window.scrollY - previousScrollY;
+      if (Math.abs(scrollDelta) < 2) return;
+      const direction = scrollDelta > 0 ? 'down' : 'up';
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
       const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
-      const heroReturnThreshold = window.innerWidth <= 800 ? heroFallThreshold : 700;
+      const heroReturnThreshold = window.innerWidth <= 800 ? heroFallThreshold * .35 : 700;
       if (direction === 'down' && window.scrollY > heroFallThreshold) {
         heroFalling = true;
         heroFallTriggered = true;

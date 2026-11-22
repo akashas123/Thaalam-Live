@@ -248,6 +248,7 @@ function App() {
     let heroFalling = false;
     let heroFallTriggered = false;
     let heroReturning = false;
+    let heroReversePlayed = false;
     let userInitiatedScroll = false;
     const root = document.documentElement;
     const onHeroAnimationEnd = (event) => {
@@ -269,15 +270,18 @@ function App() {
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
       const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
+      const heroReverseThreshold = window.innerHeight * .5;
       if (direction === 'down' && window.scrollY > heroFallThreshold) {
         heroFalling = true;
         heroFallTriggered = true;
         heroReturning = false;
+        heroReversePlayed = false;
       }
       if (direction === 'down') heroReturning = false;
-      if (direction === 'up' && heroFallTriggered) {
+      if (direction === 'up' && heroFallTriggered && !heroReversePlayed && window.scrollY < heroReverseThreshold) {
         heroFalling = false;
         heroReturning = true;
+        heroReversePlayed = true;
       }
       document.documentElement.classList.toggle('hero-falling', heroFalling);
       document.documentElement.classList.toggle('hero-returning', heroReturning);

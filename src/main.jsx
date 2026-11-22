@@ -256,11 +256,12 @@ function App() {
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
-      const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 20;
+      const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
       const heroReturnThreshold = window.innerWidth <= 800 ? heroFallThreshold : 700;
       if (direction === 'down' && window.scrollY > heroFallThreshold) heroFalling = true;
       if (direction === 'up' && window.scrollY < heroReturnThreshold) heroFalling = false;
       document.documentElement.classList.toggle('hero-falling', heroFalling);
+      document.documentElement.classList.toggle('hero-returning', direction === 'up' && !heroFalling);
       if (window.scrollY <= 4 && previousScrollY > 4) {
         document.querySelectorAll('[data-reveal]').forEach((item) => item.classList.remove('is-visible'));
       }

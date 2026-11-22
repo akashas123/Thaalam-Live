@@ -233,6 +233,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const heroEntryTimer = window.setTimeout(() => document.documentElement.classList.add('hero-entry-complete'), 1400);
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
       const direction = document.documentElement.dataset.scrollDirection || 'down';
       if (entry.isIntersecting && direction === 'down') {
@@ -281,6 +282,7 @@ function App() {
       window.removeEventListener('touchmove', markUserScroll);
       window.removeEventListener('keydown', markUserScroll);
       window.removeEventListener('scroll', onScroll);
+      window.clearTimeout(heroEntryTimer);
     };
   }, [popNews.length, chartTracks.length]);
 

@@ -286,6 +286,8 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
 .hero-falling .hero-art { animation:hero-fall-art 1.85s .18s cubic-bezier(.22,1,.36,1) both !important; }
 .hero-falling .hero-sticker { opacity:1; animation:hero-sticker-out .45s 1.62s cubic-bezier(.22,1,.36,1) both; }
 .hero-sticker { opacity:1; transition:none; }
+.site-header::after { display:none !important; }
+html .site-header::after { content:none !important; display:none !important; width:0 !important; height:0 !important; }
 .hero-entry-complete .hero-copy,
 .hero-entry-complete .hero-art { animation:none; }
 .hero-returning .hero-sticker { opacity:0; animation:hero-sticker-in .7s 1.25s cubic-bezier(.22,1,.36,1) both; }

@@ -254,6 +254,7 @@ function App() {
         previousScrollY = window.scrollY;
         return;
       }
+      const root = document.documentElement;
       const direction = window.scrollY >= previousScrollY ? 'down' : 'up';
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
@@ -275,15 +276,16 @@ function App() {
       document.documentElement.style.setProperty('--disc-progress', `${Math.min(1, window.scrollY / 700)}`);
       document.documentElement.style.setProperty('--badge-progress', `${Math.min(1, window.scrollY / 80)}`);
       document.documentElement.style.setProperty('--scroll-progress', `${window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight)}`);
-      if (window.scrollY <= 4 && direction === 'up') heroFallTriggered = false;
     };
     window.addEventListener('wheel', markUserScroll, { passive: true });
+    document.addEventListener('click', markUserScroll, { passive: true });
     window.addEventListener('touchmove', markUserScroll, { passive: true });
     window.addEventListener('keydown', markUserScroll, { passive: true });
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       observer.disconnect();
       window.removeEventListener('wheel', markUserScroll);
+      document.removeEventListener('click', markUserScroll);
       window.removeEventListener('touchmove', markUserScroll);
       window.removeEventListener('keydown', markUserScroll);
       window.removeEventListener('scroll', onScroll);

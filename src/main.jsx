@@ -246,6 +246,7 @@ function App() {
     // Do not trigger the hero fall from browser scroll restoration on refresh;
     // it should only begin after an actual downward scroll event.
     let heroFalling = false;
+    let heroFallTriggered = false;
     let userInitiatedScroll = false;
     const markUserScroll = () => { userInitiatedScroll = true; };
     const onScroll = () => {
@@ -259,10 +260,13 @@ function App() {
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
       const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
       const heroReturnThreshold = window.innerWidth <= 800 ? heroFallThreshold : 700;
-      if (direction === 'down' && window.scrollY > heroFallThreshold) heroFalling = true;
-      if (direction === 'up' && window.scrollY < heroReturnThreshold) heroFalling = false;
+      if (direction === 'down' && window.scrollY > heroFallThreshold) {
+        heroFalling = true;
+        heroFallTriggered = true;
+      }
+      if (direction === 'up' && heroFallTriggered && window.scrollY < heroReturnThreshold) heroFalling = false;
       document.documentElement.classList.toggle('hero-falling', heroFalling);
-      document.documentElement.classList.toggle('hero-returning', direction === 'up' && !heroFalling);
+      document.documentElement.classList.toggle('hero-returning', direction === 'up' && heroFallTriggered && !heroFalling);
       if (window.scrollY <= 4 && previousScrollY > 4) {
         document.querySelectorAll('[data-reveal]').forEach((item) => item.classList.remove('is-visible'));
       }
@@ -271,6 +275,7 @@ function App() {
       document.documentElement.style.setProperty('--disc-progress', `${Math.min(1, window.scrollY / 700)}`);
       document.documentElement.style.setProperty('--badge-progress', `${Math.min(1, window.scrollY / 80)}`);
       document.documentElement.style.setProperty('--scroll-progress', `${window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight)}`);
+      if (window.scrollY <= 4 && direction === 'up') heroFallTriggered = false;
     };
     window.addEventListener('wheel', markUserScroll, { passive: true });
     window.addEventListener('touchmove', markUserScroll, { passive: true });

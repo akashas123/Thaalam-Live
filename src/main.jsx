@@ -247,14 +247,21 @@ function App() {
     // it should only begin after an actual downward scroll event.
     let heroFalling = false;
     let heroFallTriggered = false;
+    let heroReturning = false;
     let userInitiatedScroll = false;
+    const root = document.documentElement;
+    const onHeroAnimationEnd = (event) => {
+      if (!event.animationName.startsWith('hero-return-')) return;
+      heroReturning = false;
+      root.classList.remove('hero-returning');
+    };
+    root.addEventListener('animationend', onHeroAnimationEnd);
     const markUserScroll = () => { userInitiatedScroll = true; };
     const onScroll = () => {
       if (!userInitiatedScroll) {
         previousScrollY = window.scrollY;
         return;
       }
-      const root = document.documentElement;
       const scrollDelta = window.scrollY - previousScrollY;
       if (scrollDelta === 0) return;
       const direction = scrollDelta > 0 ? 'down' : 'up';
@@ -266,10 +273,15 @@ function App() {
       if (direction === 'down' && window.scrollY > heroFallThreshold) {
         heroFalling = true;
         heroFallTriggered = true;
+        heroReturning = false;
       }
-      if (direction === 'up' && heroFallTriggered && window.scrollY < heroReturnThreshold) heroFalling = false;
+      if (direction === 'down') heroReturning = false;
+      if (direction === 'up' && heroFallTriggered && previousScrollY >= heroReturnThreshold && window.scrollY < heroReturnThreshold) {
+        heroFalling = false;
+        heroReturning = true;
+      }
       document.documentElement.classList.toggle('hero-falling', heroFalling);
-      document.documentElement.classList.toggle('hero-returning', direction === 'up' && heroFallTriggered && !heroFalling && window.scrollY < heroReturnThreshold);
+      document.documentElement.classList.toggle('hero-returning', heroReturning);
       if (window.scrollY <= 4 && previousScrollY > 4) {
         document.querySelectorAll('[data-reveal]').forEach((item) => item.classList.remove('is-visible'));
       }
@@ -291,6 +303,7 @@ function App() {
       window.removeEventListener('touchmove', markUserScroll);
       window.removeEventListener('keydown', markUserScroll);
       window.removeEventListener('scroll', onScroll);
+      root.removeEventListener('animationend', onHeroAnimationEnd);
       window.clearTimeout(heroEntryTimer);
     };
   }, [popNews.length, chartTracks.length]);

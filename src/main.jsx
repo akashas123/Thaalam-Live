@@ -269,14 +269,13 @@ function App() {
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
       const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
-      const heroReturnThreshold = window.innerWidth <= 800 ? heroFallThreshold * .35 : 700;
       if (direction === 'down' && window.scrollY > heroFallThreshold) {
         heroFalling = true;
         heroFallTriggered = true;
         heroReturning = false;
       }
       if (direction === 'down') heroReturning = false;
-      if (direction === 'up' && heroFallTriggered && previousScrollY >= heroReturnThreshold && window.scrollY < heroReturnThreshold) {
+      if (direction === 'up' && heroFallTriggered) {
         heroFalling = false;
         heroReturning = true;
       }

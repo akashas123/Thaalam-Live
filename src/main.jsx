@@ -184,7 +184,10 @@ function App() {
   useEffect(() => {
     const loadNews = async () => {
       try {
-        const response = await fetch('/api/pop-news');
+        const response = await fetch(`/api/pop-news?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
         const xml = await response.text();
         const doc = new DOMParser().parseFromString(xml, 'text/xml');
         const items = [...doc.querySelectorAll('item')].slice(0, 4).map((item) => ({
@@ -199,8 +202,6 @@ function App() {
       } catch {}
     };
     loadNews();
-    const refreshTimer = setInterval(loadNews, 10 * 60 * 1000);
-    return () => clearInterval(refreshTimer);
   }, []);
 
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume; }, [volume]);

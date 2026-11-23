@@ -28,8 +28,8 @@ nav a:hover::after, .text-link:hover::after { transform:scaleX(1); transform-ori
 .hero-live-label.has-show .hero-current-show { animation:hero-show-in .8s 1.35s cubic-bezier(.22,1,.36,1) both; }
 .hero-live-label.program-change .hero-show-out,
 .hero-live-label.program-change .hero-show-in { grid-area:1 / 1; white-space:nowrap; }
-.hero-live-label.program-change .hero-show-out { animation:hero-program-out .8s cubic-bezier(.22,1,.36,1) both; }
-.hero-live-label.program-change .hero-show-in { animation:hero-program-in .8s cubic-bezier(.22,1,.36,1) both; }
+.hero-live-label.program-change .hero-show-out { animation:hero-live-out .8s 0s cubic-bezier(.22,1,.36,1) both; }
+.hero-live-label.program-change .hero-show-in { animation:hero-show-in .8s .25s cubic-bezier(.22,1,.36,1) both; }
 .hero-current-show-banner { display:none; }
 @keyframes hero-show-in {
   from { opacity:0; transform:translateY(12px); }

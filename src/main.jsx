@@ -233,6 +233,13 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (!schedule.length) return;
+    document.querySelectorAll('.show-row[data-reveal]').forEach((row) => {
+      row.classList.add('is-visible');
+    });
+  }, [schedule]);
+
+  useEffect(() => {
     const heroEntryTimer = window.setTimeout(() => document.documentElement.classList.add('hero-entry-complete'), 1400);
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
       const direction = document.documentElement.dataset.scrollDirection || 'down';
@@ -457,6 +464,22 @@ function App() {
   };
 
   const currentShowName = schedule.find((show) => show.state === 'NOW')?.name;
+  const [heroShowTransition, setHeroShowTransition] = useState(null);
+  const heroShowRef = useRef(null);
+
+  useEffect(() => {
+    if (!currentShowName) return;
+    if (heroShowRef.current === null) {
+      heroShowRef.current = currentShowName;
+      return;
+    }
+    if (heroShowRef.current === currentShowName) return;
+    const from = heroShowRef.current;
+    heroShowRef.current = currentShowName;
+    setHeroShowTransition({ from, to: currentShowName });
+    const timer = window.setTimeout(() => setHeroShowTransition(null), 850);
+    return () => window.clearTimeout(timer);
+  }, [currentShowName]);
 
   return <>
     <audio ref={audioRef} autoPlay muted preload="auto" playsInline onPlaying={() => { clearTimeout(playRetryRef.current); if (pendingPlayRef.current) audioRef.current.muted = false; pendingPlayRef.current = false; setAudioLoading(false); setPlaying(!audioRef.current.muted); }} onTimeUpdate={() => { const audio = audioRef.current; if (audio && !audio.paused && audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) { pendingPlayRef.current = false; setAudioLoading(false); setPlaying(!audio.muted); } }} onWaiting={() => setAudioLoading(true)} onPause={() => { if (!pendingPlayRef.current) { setAudioLoading(false); setPlaying(false); } }} onError={() => { clearTimeout(playRetryRef.current); pendingPlayRef.current = false; setAudioLoading(false); setPlaying(false); }} />
@@ -464,7 +487,7 @@ function App() {
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="site-header"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><nav><a href="#listen" onClick={(event) => navigateToSection(event, '#listen')}>Listen</a><a href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>Charts</a><a href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>Shows</a><a href="#news" onClick={(event) => navigateToSection(event, '#news')}>News</a></nav><button className="header-play" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />} {playing ? 'Pause live' : 'Play live'}</button></header>
     <main id="main">
-      <section className="hero" id="top"><div className="hero-copy"><p className={`eyebrow hero-live-label${currentShowName ? ' has-show' : ''}`}><span className="live-dot" /><span className="hero-live-words"><span className="hero-live-default">Live Worldwide</span>{currentShowName && <span className="hero-current-show">{currentShowName}</span>}</span></p><h1>We play the<br />best</h1><p className="hero-intro">Catch the greatest hits, nonstop 24x7, live worldwide</p><div className="hero-actions"><button className="button button-primary" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />} {playing ? 'Pause radio' : 'Listen live'}</button><a className="text-link" href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>See the charts <ArrowUpRight size={16} /></a></div></div><div className="hero-art"><div className="record-shell"><div className="record"><div className="record-label"><DiscLogo /></div></div></div><div className="hero-sticker">ON AIR<br /><span>24 / 7</span></div></div><div className="hero-foot"><span></span><span>Scroll to live room</span><span className="hero-line" /></div></section>
+      <section className="hero" id="top"><div className="hero-copy"><p className={`eyebrow hero-live-label${currentShowName ? ' has-show' : ''}${heroShowTransition ? ' program-change' : ''}`}><span className="live-dot" /><span className="hero-live-words">{heroShowTransition ? <><span className="hero-show-out">{heroShowTransition.from}</span><span className="hero-show-in">{heroShowTransition.to}</span></> : <><span className="hero-live-default">Live Worldwide</span>{currentShowName && <span className="hero-current-show">{currentShowName}</span>}</>}</span></p><h1>We play the<br />best</h1><p className="hero-intro">Catch the greatest hits, nonstop 24x7, live worldwide</p><div className="hero-actions"><button className="button button-primary" onClick={toggleAudio}>{audioLoading ? <span className="audio-spinner" aria-label="Loading" /> : playing ? <Pause size={17} fill="currentColor" /> : <Play size={17} fill="currentColor" />} {playing ? 'Pause radio' : 'Listen live'}</button><a className="text-link" href="#charts" onClick={(event) => navigateToSection(event, '#charts')}>See the charts <ArrowUpRight size={16} /></a></div></div><div className="hero-art"><div className="record-shell"><div className="record"><div className="record-label"><DiscLogo /></div></div></div><div className="hero-sticker">ON AIR<br /><span>24 / 7</span></div></div><div className="hero-foot"><span></span><span>Scroll to live room</span><span className="hero-line" /></div></section>
       <section className="player-section" id="listen"><div className="section-intro"><p className="eyebrow">The live room</p><h2>Now playing</h2></div><div className="player-card" data-reveal="rise"><div className="player-art"><img draggable="false" src={currentTrack.cover || fallbackCover} alt="Current album artwork" onError={(e) => { e.currentTarget.src = fallbackCover; }} /><div className="art-disc"><Disc3 size={36} /></div></div><div className="player-info"><span className="live-label"><span className="live-dot" /> On air now</span><h3>{currentTrack.title}</h3><p>{currentTrack.artist}</p><div className="waveform">{Array.from({ length: 34 }, (_, i) => <span key={i} style={{ '--i': i }} />)}</div><div className="player-controls"><button className="play-button" onClick={toggleAudio}>{playing ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}</button><div className="track-time"></div><Volume2 size={18} /><input aria-label="Volume" type="range" min="0" max="1" step=".01" value={volume} onChange={(e) => setVolume(Number(e.target.value))} /></div></div></div></section>
       <section className="chart-section" id="charts"><div className="chart-header"><div><p className="eyebrow">Global pop · trending now</p><h2>The chart, <span>right now</span></h2></div></div><div className="chart-grid">{chartTracks.map((track, index) => <article className={`chart-card${chartsRevealed ? ' is-visible' : ''}${previewTrack?.title === track.title ? ' is-previewing' : ''}`} data-reveal="rise" style={{ '--delay': `${index * 90}ms` }} key={`${track.rank}-${track.title}`}><div className="chart-rank">{track.rank}</div><button className="chart-cover" onClick={() => togglePreview(track)} aria-label={`${previewTrack?.title === track.title ? 'Pause' : 'Play'} ${track.title}`}><img draggable="false" src={track.cover || fallbackCover} alt={`${track.title} album art`} onError={(e) => { e.currentTarget.src = fallbackCover; }} /><span className="chart-play">{previewTrack?.title === track.title ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}</span></button><div className="chart-meta"><h3>{track.title}</h3><p>{track.artist}</p></div></article>)}</div></section>
       <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>What's on<br /><span>Thaalam</span></h2><p>Shows curated by our experts</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'NOW' ? Radio : show.state === 'LATER' ? FastForward : SkipForward; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured is-now' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['NOW', 'NEXT', 'LATER'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>

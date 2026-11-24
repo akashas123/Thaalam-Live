@@ -281,7 +281,8 @@ function App() {
       document.documentElement.dataset.scrollDirection = direction;
       document.documentElement.classList.toggle('scroll-down', direction === 'down');
       document.documentElement.classList.toggle('scroll-up', direction === 'up');
-      const heroFallThreshold = window.innerWidth <= 800 ? window.innerHeight * .5 : 8;
+      const isLandscapePhone = window.matchMedia('(orientation: landscape) and (max-width: 900px)').matches;
+      const heroFallThreshold = window.innerWidth <= 1024 || isLandscapePhone ? window.innerHeight * .5 : 8;
       const heroReverseThreshold = window.innerHeight * .5;
       if (direction === 'down' && window.scrollY > heroFallThreshold) {
         heroFalling = true;

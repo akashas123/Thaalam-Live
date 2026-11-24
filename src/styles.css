@@ -704,6 +704,70 @@ html .site-header::after { content:none !important; display:none !important; wid
   .hero-returning .hero-art { animation:hero-return-art-mobile 1.65s .16s cubic-bezier(.16,1,.3,1) both !important; }
 }
 
+/* Landscape keeps the desktop composition, scaled to the available height. */
+@media (orientation:landscape) and (max-width:900px) {
+  .hero {
+    grid-template-columns:1fr 1fr;
+    min-height:100svh;
+    padding:clamp(88px, 16svh, 130px) 5.5vw 24px;
+  }
+
+  .hero h1 {
+    font-size:clamp(3rem, 11svh, 6.5rem);
+    line-height:.87;
+    margin-bottom:clamp(14px, 3svh, 30px);
+  }
+
+  .hero-copy {
+    max-width:650px;
+    translate:0;
+  }
+
+  .hero-art {
+    height:min(66svh, 680px);
+  }
+
+  .hero-art .record-shell {
+    width:min(42vw, 58svh, 530px);
+  }
+
+  .player-section {
+    padding:clamp(112px, 16svh, 150px) 9vw 84px;
+  }
+
+  .player-section .section-intro {
+    padding-top:0;
+  }
+
+  .player-section .section-intro h2 {
+    font-size:clamp(3.5rem, 10svh, 8rem);
+    margin-bottom:clamp(28px, 5svh, 60px);
+  }
+
+  .player-card {
+    grid-template-columns:1fr 1fr;
+    height:min(530px, calc(100svh - 220px));
+    min-height:0;
+  }
+
+  .player-art {
+    width:auto;
+    height:100%;
+    min-height:0;
+  }
+
+  .player-art .art-disc {
+    display:grid;
+    width:49%;
+    right:-9%;
+    bottom:-12%;
+  }
+
+  .player-info {
+    padding:clamp(30px, 5svh, 70px) clamp(30px, 7vw, 100px);
+  }
+}
+
 /* Final landscape schedule alignment: one stable grid for every row. */
 @media (orientation:landscape) and (max-width:900px) {
   .show-row,

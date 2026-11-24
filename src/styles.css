@@ -260,15 +260,6 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible) { outline:none; }
   to { opacity:1; transform:scale(1); }
 }
 
-/* Charts are available immediately on first paint. */
-.chart-card[data-reveal],
-.chart-card[data-reveal].is-visible {
-  opacity:1;
-  transform:none;
-  animation:none;
-  transition:none;
-}
-
 /* Keep the live schedule readable while the surrounding sections animate. */
 .show-row[data-reveal], .show-row[data-reveal].is-visible { opacity:1; transform:none; }
 .show-row, .show-row.featured, .show-row:hover { padding-left:12px; }

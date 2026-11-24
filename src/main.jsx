@@ -234,19 +234,23 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!schedule.length) return;
-    document.querySelectorAll('.show-row[data-reveal]').forEach((row) => {
-      row.classList.add('is-visible');
-    });
-  }, [schedule]);
-
-  useEffect(() => {
     const heroEntryTimer = window.setTimeout(() => document.documentElement.classList.add('hero-entry-complete'), 1400);
     const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
-      const direction = document.documentElement.dataset.scrollDirection || 'down';
-      if (entry.isIntersecting && direction === 'down') {
+      if (entry.target.classList.contains('chart-card')) {
+        const direction = document.documentElement.dataset.scrollDirection || 'down';
+        if (entry.isIntersecting && direction === 'down') {
+          entry.target.classList.add('is-visible');
+          setChartsRevealed(true);
+        }
+        return;
+      }
+      if (entry.isIntersecting) {
+        entry.target.classList.remove('is-visible');
+        void entry.target.offsetWidth;
         entry.target.classList.add('is-visible');
         if (entry.target.classList.contains('chart-card')) setChartsRevealed(true);
+      } else {
+        entry.target.classList.remove('is-visible');
       }
     }), { threshold: .12, rootMargin: '0px 0px -8% 0px' });
     document.querySelectorAll('[data-reveal]').forEach((item) => observer.observe(item));

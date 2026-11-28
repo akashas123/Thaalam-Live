@@ -21,7 +21,7 @@ export default defineConfig({
         rewrite: (path) => `/search${path.replace('/api/itunes', '')}&entity=song&limit=1`,
       },
       '/api/radio': {
-        target: 'http://68.233.117.57',
+        target: 'https://radio.thaalam24x7.in',
         changeOrigin: true,
         rewrite: (path) => path.replace('/api/radio', '/api'),
       },
@@ -31,7 +31,7 @@ export default defineConfig({
         rewrite: () => '/blog-feed.xml',
       },
       '/hls': {
-        target: 'http://68.233.117.57',
+        target: 'https://radio.thaalam24x7.in',
         changeOrigin: true,
       },
     },

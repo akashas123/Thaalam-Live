@@ -1,6 +1,6 @@
 export async function onRequest({ params, request }) {
   const path = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
-  const target = `http://68.233.117.57/hls/${path}${new URL(request.url).search}`;
+  const target = `https://radio.thaalam24x7.in/hls/${path}${new URL(request.url).search}`;
   const response = await fetch(target, {
     method: request.method,
     redirect: 'follow',
@@ -8,7 +8,7 @@ export async function onRequest({ params, request }) {
       Accept: request.headers.get('Accept') || '*/*',
       'User-Agent': 'Mozilla/5.0',
       'X-Forwarded-Proto': 'http',
-      'X-Forwarded-Host': '68.233.117.57',
+      'X-Forwarded-Host': 'radio.thaalam24x7.in',
     },
   });
   const headers = new Headers(response.headers);
@@ -20,7 +20,9 @@ export async function onRequest({ params, request }) {
     const playlist = await response.text();
     const rewritten = playlist
       .replaceAll('http://68.233.117.57/', '/')
-      .replaceAll('https://68.233.117.57/', '/');
+      .replaceAll('https://68.233.117.57/', '/')
+      .replaceAll('http://radio.thaalam24x7.in/', '/')
+      .replaceAll('https://radio.thaalam24x7.in/', '/');
     headers.set('Content-Type', 'application/vnd.apple.mpegurl');
     headers.delete('Content-Length');
     return new Response(rewritten, { status: response.status, headers });

@@ -4,7 +4,12 @@ export async function onRequestGet({ params, request }) {
   const response = await fetch(target, {
     method: 'GET',
     redirect: 'follow',
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0',
+      'X-Forwarded-Proto': 'http',
+      'X-Forwarded-Host': '68.233.117.57',
+    },
   });
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', '*');

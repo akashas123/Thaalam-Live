@@ -1,7 +1,16 @@
 export async function onRequest({ params, request }) {
   const path = Array.isArray(params.path) ? params.path.join('/') : params.path || '';
   const target = `http://68.233.117.57/hls/${path}${new URL(request.url).search}`;
-  const response = await fetch(target, { method: request.method, redirect: 'follow' });
+  const response = await fetch(target, {
+    method: request.method,
+    redirect: 'follow',
+    headers: {
+      Accept: request.headers.get('Accept') || '*/*',
+      'User-Agent': 'Mozilla/5.0',
+      'X-Forwarded-Proto': 'http',
+      'X-Forwarded-Host': '68.233.117.57',
+    },
+  });
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', '*');
   headers.set('Cache-Control', 'no-store');

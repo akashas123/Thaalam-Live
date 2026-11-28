@@ -4,8 +4,8 @@ import Hls from 'hls.js';
 import { ArrowUpRight, Disc3, FastForward, Pause, Play, Radio, SkipForward, Volume2 } from 'lucide-react';
 import './styles.css';
 
-const streamUrl = 'http://68.233.117.57/hls/thaalam_24x7/live.m3u8';
-const apiBase = 'http://68.233.117.57/api';
+const streamUrl = '/hls/thaalam_24x7/live.m3u8';
+const apiBase = '/api/radio';
 const fallbackTracks = [
   { rank: '01', title: 'End of Beginning', artist: 'Djo', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=85' },
   { rank: '02', title: 'Beautiful Things', artist: 'Benson Boone', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=85' },

@@ -4,8 +4,8 @@ import Hls from 'hls.js';
 import { ArrowUpRight, Disc3, FastForward, Pause, Play, Radio, SkipForward, Volume2 } from 'lucide-react';
 import './styles.css';
 
-const streamUrl = 'https://radio.thaalam24x7.in/hls/thaalam_24x7/aac_hifi.m3u8';
-const apiBase = import.meta.env.DEV ? 'https://radio.thaalam24x7.in/api' : '/api/radio';
+const streamUrl = '/hls/thaalam_24x7/live.m3u8';
+const apiBase = '/api/radio';
 const fallbackTracks = [
   { rank: '01', title: 'End of Beginning', artist: 'Djo', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=85' },
   { rank: '02', title: 'Beautiful Things', artist: 'Benson Boone', cover: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=800&q=85' },
@@ -500,7 +500,7 @@ function App() {
       <section className="shows-section" id="shows"><div className="shows-copy"><p className="eyebrow">Broadcast schedule</p><h2>What's on<br /><span>Thaalam</span></h2><p>Shows curated by our experts</p><a className="button button-light" href="#shows" onClick={(event) => navigateToSection(event, '#shows')}>See the schedule <ArrowUpRight size={16} /></a></div><div className="show-list">{schedule.slice(0, 3).map((show, index) => { const Icon = show.state === 'NOW' ? Radio : show.state === 'LATER' ? FastForward : SkipForward; return <div className={`show-row${show.featured || show.state === 'NOW' ? ' featured is-now' : ''}`} data-reveal="side" style={{ '--delay': `${index * 120}ms` }} key={`${show.state || index}-${index}-${show.start}-${show.name}`}><span><small>{show.state || ['NOW', 'NEXT', 'LATER'][index]}</small><time>{show.start}</time></span><div><h3>{show.name}</h3></div><Icon size={20} /></div>; })}</div></section>
       <section className="trending-section" id="news"><div className="trending-copy"><p className="eyebrow">Pop music, right now</p><h2>What’s<br /><span>moving</span></h2><p>The latest stories, releases, and moments shaping pop culture beyond the playlist.</p></div><div className="news-list">{popNews.length ? popNews.map((story, index) => <a className="news-item" data-reveal="rise" href={story.link} target="_blank" rel="noreferrer" key={`${story.title}-${index}`}><span className="news-source">{story.author || story.source}</span><strong>{story.title}</strong><small className="news-date">{formatNewsDate(story.date)}</small><ArrowUpRight size={16} /></a>) : <div className="news-empty"><Disc3 size={24} /><span>Loading…</span></div>}</div></section>
     </main>
-    <footer className="site-footer"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><a className="footer-player-link" href="https://web.thaalam24x7.in">Web Player <ArrowUpRight size={14} aria-hidden="true" /></a><span>© 2026 Thaalam 24x7</span></footer>
+    <footer className="site-footer"><a className="brand" href="#top"><BrandMark /><span>THAALAM 24x7</span></a><a className="footer-player-link" href="https://thaalam-web-app.pages.dev/">Web Player <ArrowUpRight size={14} aria-hidden="true" /></a><span>© 2026 Thaalam 24x7</span></footer>
   </>;
 }
 
